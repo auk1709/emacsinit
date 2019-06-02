@@ -1,0 +1,124 @@
+(defun add-to-load-path (&rest paths)
+  (let (path)
+    (dolist (path paths paths)
+      (let ((default-directory
+	      (expand-file-name (concat user-emacs-directory path))))
+	(add-to-list 'load-path default-directory)
+	(if (fboundp 'normal-top-level-add-subdirs-to-load-path)
+	    (normal-top-level-add-subdirs-to-load-path))))))
+(add-to-load-path "elisp" "conf" "public_repos")
+(require 'package) ; package.elを有効化
+;; パッケージリポジトリにMarmaladeとMELPAを追加
+(add-to-list
+ 'package-archives
+ '("marmalade" . "https://marmalade-reop.org/packages/"))
+(add-to-list
+ 'package-archives
+ '("melpa" . "https://melpa.org/packages/"))
+(package-initialize) ; インストール済みのElispを読み込む
+(define-key global-map (kbd "C-m") 'newline-and-indent)
+;; backspace
+(define-key key-translation-map (kbd "C-h") (kbd "<DEL>"))
+;; help
+(define-key global-map (kbd "C-x ?") 'help-command)
+(define-key global-map (kbd "C-c l") 'toggle-truncate-lines)
+(define-key global-map (kbd "C-t") 'other-window)
+(set-language-environment "Japanese")
+(prefer-coding-system 'utf-8)
+(column-number-mode t)
+(size-indication-mode t)
+(display-time-mode t)
+(display-battery-mode t)
+(scroll-bar-mode -1) ;スクロールバーをなくす
+(tool-bar-mode -1) ; ツールバーをなくす
+(menu-bar-mode -1) ; メニューバーをなくす
+;; タイトルバーにファイルのフルパスを表示
+(setq frame-title-format "%f")
+;; 行番号を常に表示する
+(global-display-line-numbers-mode)
+;; TABの表示幅
+(setq-default tab-width 4)
+(set-face-attribute 'default nil
+					:family "Ricty Diminished"
+					:height 120)
+(setq hl-line-face 'my-hl-line-face)
+(global-hl-line-mode t)
+;; paren-mode:対応する括弧を強調して表示する
+(setq show-paren-delay 0) ; 表示までの秒数。初期値は0.125
+(show-paren-mode t) ; 有効化
+;; parenのスタイル: expressionは括弧内も強調表示
+(setq show-paren-style 'expression)
+(set-face-background 'show-paren-match nil)
+(set-face-underline-p 'show-paren-match "darkgreen")
+;; バックアップファイルの作成場所をシステムのTempディレクトリに変更する
+(setq backup-directory-alist
+	  `((".*" . ,temporary-file-directory)))
+;; オートセーブファイルの作成場所をシステムのTempディレクトリに変更する
+(setq auto-save-file-name-transforms
+	  `((".*" ,temporary-file-directory t)))
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(custom-safe-themes
+   (quote
+	("2642a1b7f53b9bb34c7f1e032d2098c852811ec2881eec2dc8cc07be004e45a0" "54f2d1fcc9bcadedd50398697618f7c34aceb9966a6cbaa99829eb64c0c1f3ca" default)))
+ '(package-selected-packages
+   (quote
+	(emmet-mode quickrun flycheck web-mode color-moccur auto-complete helm atom-dark-theme zenburn-theme multi-term htmlize))))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ )
+;; atom-darkテーマを利用する
+(load-theme 'atom-dark t)
+;; Helm
+(require 'helm-config)
+;; auto-completeの設定
+(when (require 'auto-complete-config nil t)
+  (define-key ac-mode-map (kbd "M-TAB") 'auto-complete)
+  (ac-config-default)
+  (setq ac-use-menu-map t)
+  (setq ac-ignore-case nil))
+;; color-moccurの設定
+(when (require 'color-moccur nil t)
+  ;; M-oにoccur-by-moccurを割り当て
+  (define-key global-map (kbd "M-o") 'occur-by-moccur)
+  ;; スペース区切りでAND検索
+  (setq moccur-split-word t)
+  ;; ディレクトリ検索のとき除外するファイル
+  (add-to-list 'dmoccur-exclusion-mask "\\.DS_Store")
+  (add-to-list 'dmoccur-exclusion-mask "^#.+#$"))
+;; cua-modeの設定
+(cua-mode t) ; cua-modeをオン
+(setq cua-enable-cua-keys nil) ; CUAキーバインドを無効にする
+(when (require 'web-mode nil t)
+  ;; 自動的にwen-modeを起動したい拡張子を追加する
+  (add-to-list 'auto-mode-alist '("\\.html\\'" . web-mode))
+  (add-to-list 'auto-mode-alist '("\\.css\\'" . web-mode))
+  (add-to-list 'auto-mode-alist '("\\.js\\'" . web-mode))
+  (add-to-list 'auto-mode-alist '("\\.jsx\\'" . web-mode))
+  (add-to-list 'auto-mode-alist '("\\.tpl\\.php\\'" . web-mode))
+  (add-to-list 'auto-mode-alist '("\\.ctp\\'" . web-mode))
+  (add-to-list 'auto-mode-alist '("\\.jsp\\'" . web-mode))
+  (add-to-list 'auto-mode-alist '("\\.as[cp]x\\'" . web-mode))
+  (add-to-list 'auto-mode-alist '("\\.erb\\'" . web-mode))
+  ;; web-modeのインデント用フック
+  (defun web-mode-hook ()
+	"Hooks for Web mode."
+	(setq web-mode-code-indent-offset 4)
+	)
+  (add-hook 'web-mode-hook 'web-mode-hook)
+  )
+(add-hook 'after-init-hook #'global-flycheck-mode)
+;; emmet setting
+(add-hook 'sgml-mode-hook 'emmet-mode)
+(add-hook 'css-mode-hook 'emmet-mode)
+;; ビープ音を消す
+(setq visible-bell t)
+
+
+
