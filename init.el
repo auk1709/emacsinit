@@ -1,3 +1,4 @@
+;;; code
 (defun add-to-load-path (&rest paths)
   (let (path)
     (dolist (path paths paths)
@@ -11,7 +12,7 @@
 ;; パッケージリポジトリにMarmaladeとMELPAを追加
 (add-to-list
  'package-archives
- '("marmalade" . "https://marmalade-reop.org/packages/"))
+ '("marmalade" . "https://marmalade-repo.org/packages/"))
 (add-to-list
  'package-archives
  '("melpa" . "https://melpa.org/packages/"))
@@ -66,7 +67,7 @@
 	("2642a1b7f53b9bb34c7f1e032d2098c852811ec2881eec2dc8cc07be004e45a0" "54f2d1fcc9bcadedd50398697618f7c34aceb9966a6cbaa99829eb64c0c1f3ca" default)))
  '(package-selected-packages
    (quote
-	(emmet-mode quickrun flycheck web-mode color-moccur auto-complete helm atom-dark-theme zenburn-theme multi-term htmlize))))
+	(mozc-popup mozc-im mozc emmet-mode quickrun flycheck web-mode color-moccur auto-complete helm atom-dark-theme zenburn-theme multi-term htmlize))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -98,7 +99,6 @@
 (when (require 'web-mode nil t)
   ;; 自動的にwen-modeを起動したい拡張子を追加する
   (add-to-list 'auto-mode-alist '("\\.html\\'" . web-mode))
-  (add-to-list 'auto-mode-alist '("\\.css\\'" . web-mode))
   (add-to-list 'auto-mode-alist '("\\.js\\'" . web-mode))
   (add-to-list 'auto-mode-alist '("\\.jsx\\'" . web-mode))
   (add-to-list 'auto-mode-alist '("\\.tpl\\.php\\'" . web-mode))
@@ -115,10 +115,66 @@
   )
 (add-hook 'after-init-hook #'global-flycheck-mode)
 ;; emmet setting
-(add-hook 'sgml-mode-hook 'emmet-mode)
-(add-hook 'css-mode-hook 'emmet-mode)
+(require 'emmet-mode)
+(add-hook 'web-mode-hook 'emmet-mode); web-mode起動時
+(add-hook 'sgml-mode-hook 'emmet-mode); あらゆるマークアップ言語
+(add-hook 'css-mode-hook 'emmet-mode); css-mode起動時 
 ;; ビープ音を消す
 (setq visible-bell t)
+;; 括弧自動補完
+(electric-pair-mode 1)
+;;; mozc
+(require 'mozc)
+(require 'mozc-im)
+(require 'mozc-popup)
+(require 'mozc-cursor-color)
+(require 'wdired)
 
+(setq default-input-method "japanese-mozc-im")
 
+;; popupスタイル を使用する
+(setq mozc-candidate-style 'popup)
+
+;; カーソルカラーを設定する
+(setq mozc-cursor-color-alist '((direct        . "red")
+                                (read-only     . "yellow")
+                                (hiragana      . "green")
+                                (full-katakana . "goldenrod")
+                                (half-ascii    . "dark orchid")
+                                (full-ascii    . "orchid")
+                                (half-katakana . "dark goldenrod")))
+
+;; カーソルの点滅を OFF にする
+(blink-cursor-mode 0)
+
+;; C-o で IME をトグルする
+(global-set-key (kbd "C-o") 'toggle-input-method)
+(define-key isearch-mode-map (kbd "C-o") 'isearch-toggle-input-method)
+(define-key wdired-mode-map (kbd "C-o") 'toggle-input-method)
+
+;; mozc-cursor-color を利用するための対策
+;; (defvar mozc-im-mode nil)
+;; (make-variable-buffer-local 'mozc-im-mode)
+(defvar-local mozc-im-mode nil)
+(add-hook 'mozc-im-activate-hook (lambda () (setq mozc-im-mode t)))
+(add-hook 'mozc-im-deactivate-hook (lambda () (setq mozc-im-mode nil)))
+(advice-add 'mozc-cursor-color-update
+            :around (lambda (orig-fun &rest args)
+                      (let ((mozc-mode mozc-im-mode))
+                        (apply orig-fun args))))
+
+;; isearch を利用する前後で IME の状態を維持するための対策
+(add-hook 'isearch-mode-hook (lambda () (setq im-state mozc-im-mode)))
+(add-hook 'isearch-mode-end-hook
+          (lambda ()
+            (unless (eq im-state mozc-im-mode)
+              (if im-state
+                  (activate-input-method default-input-method)
+                (deactivate-input-method)))))
+
+;; wdired 終了時に IME を OFF にする
+(advice-add 'wdired-finish-edit
+            :after (lambda (&rest args)
+                     (deactivate-input-method)))
+;;;
 
